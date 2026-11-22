@@ -251,7 +251,7 @@ def unknown_keys(values: Mapping[str, Any]) -> list[str]:
 
 
 # Fields the editor does not show directly (driven by another control, e.g. the Akashi repair switch)
-HIDDEN_KEYS = frozenset({"ship_switcher.slots"})
+HIDDEN_KEYS = frozenset()
 
 
 def module_keys(module: str, values: Mapping[str, Any]) -> list[str]:

@@ -62,6 +62,7 @@ class Kcauto(object):
                 pvp.pvp.update_from_config()
                 qst.quest.update_from_config()
                 sch.scheduler.update_from_config()
+                ssw.ship_switcher.update_from_config()
 
     def initialization_check(self):
         if sts.stats.rsc.ammo is None:
@@ -394,6 +395,14 @@ class Kcauto(object):
             Log.log_error("Failed to configure sortie fleet. Disabling combat module.")
             return False
 
+        # Apply slot overrides to the fleet that will actually sortie, after
+        # Noro6/preset loading and before repair and readiness checks.
+        if cfg.config.ship_switcher.enabled and not self.run_shipswitch_logic(
+            fleet=flt.fleets.combat_fleets[0], back_to_home=True
+        ):
+            Log.log_warn("Ship switch failed; postponing sortie.")
+            return False
+
         port_api_update = True
 
         kca_u.kca.pause_if_configured("Combat fleetswitch dryrun enabled.")
@@ -558,17 +567,27 @@ class Kcauto(object):
 
         return 0
 
-    def run_shipswitch_logic(self, back_to_home=False):
+    def run_shipswitch_logic(self, back_to_home=False, fleet=None):
+        if not cfg.config.ship_switcher.enabled or not ssw.ship_switcher.rules:
+            return True
+        if fleet is None:
+            if com.combat.enabled:
+                return True  # Combat handles rotation after loading its preset.
+            fleet = flt.fleets.fleets[flt.fleets.ACTIVE_FLEET_KEY][1]
 
-        switch_list = ssw.ship_switcher.get_ship_switch_list()
+        # Returning from repair/factory processes PORT, including api_ndock,
+        # before a candidate is chosen rather than after building the list.
+        nav.navigate.to("home")
+        switch_list = ssw.ship_switcher.get_ship_switch_list(fleet)
 
         if switch_list:
-            nav.navigate.to("home")
             ssw.ship_switcher.goto()
-            ssw.ship_switcher.switch_ships(switch_list)
+            switched = ssw.ship_switcher.switch_ships(switch_list, fleet)
             self.handle_back_to_home(back_to_home)
             if not back_to_home:
                 self.end_loop_at_port = True
+            return switched
+        return True
 
     def run_quest_logic(
         self, context=None, fast_check=False, back_to_home=False, force=False

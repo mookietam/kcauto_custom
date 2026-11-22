@@ -172,7 +172,7 @@ digit-by-digit wheels (like a phone alarm clock).
 | `combat.node_selects`, `node_formations`, `node_night_battles` | two-column tables |
 | `scheduler.rules` | a dedicated dialog with exactly two rules: **stop kcauto at HH:MM** (`time:HHMM:stop:kcauto`) and **stop combat after N sorties** (`sorties_run:N:stop:combat`). Space = on/off, Enter = set value, `o` = OK. Other rules are removed when you press OK |
 | `quest.quests` | checklist grouped by prefix (events first, newest first); a group header folds / unfolds it, Space ticks a quest. Only quests in `data/quests/quests.json` (fallback `template/data/quests/quests.json`) are listed; selected quests missing from the file go to an `other` group so they are never lost |
-| `ship_switcher.enabled` ("Akashi repair") | one switch: on fills `ship_switcher.slots` with the fixed Akashi repair rules, off clears them. `ship_switcher.slots` itself is not shown. See *Linked settings* below |
+| `ship_switcher.enabled` | Enables slot rules. Edit `ship_switcher.slots` for a custom rotation; turning the switch off preserves custom rules. Without custom rules the switch uses the idle Akashi repair preset. |
 | unknown keys holding objects / lists | **tree-table editor** (below); scalar unknown keys use a JSON editor |
 | `combat.push_nodes` | adding a node asks for confirmation (y / n); removing does not |
 | expeditions | the first row "All fleets 2/3/4" sets fleets 2, 3 and 4 at once (`auto`, `overnight`, a custom list, or clear); `d` / `z` reset / revert all three. Add presets in `EXPEDITION_PRESETS` in `editor/model.py` |
@@ -184,9 +184,8 @@ to the buttons, ← → to switch button, Enter / Space to press, ↑ to go back
 
 - `combat.override` off → every `combat.*` setting except `enabled`, `fleet_presets` and `sortie_map`
   is shown in grey: it can still be changed, but kcauto ignores it (it uses the defaults in `data/combat`).
-- **Akashi repair and combat are exclusive**: enabling combat turns Akashi repair off (and clears its
-  rules), and Akashi repair cannot be turned on while combat is enabled. A file that has both on is
-  corrected on load and shows as modified.
+- **Only the idle Akashi preset is exclusive with combat.** Custom slot rules are applied
+  to the main sortie fleet after the combat preset loads, including in Noro6 auto mode.
 - **Turning combat off** (a real on → off toggle, including `d` reset) turns **Akashi repair** and
   **passive repair** on. Turning combat on does not touch passive repair. Loading and reverting
   never trigger this.

@@ -2,8 +2,6 @@ from util.pyvisauto import Region
 
 import fleet.fleet_core as flt
 
-import api.api_core as api
-from kca_enums.kcsapi_paths import KCSAPIEnum
 import combat.combat_core as com
 import config.config_core as cfg
 import nav.nav as nav
@@ -29,6 +27,9 @@ class ShipSwitcherCore(object):
 
     def __init__(self):
         Log.log_debug_1("Initializing Ship Switcher core.")
+        self.update_from_config()
+
+    def update_from_config(self):
         self._intake_rules(cfg.config.ship_switcher.slots)
 
     def _intake_rules(self, slot_rules):
@@ -66,29 +67,34 @@ class ShipSwitcherCore(object):
                 return False
         return True
 
-    def switch_ships(self, switch_list):
+    def switch_ships(self, switch_list, fleet):
 
+        fleet.select()
+        success = True
         for switch_info in switch_list:
             """The rule says remove the ship in this slot -- XVs32"""
             if switch_info["idx"] < 0:
-                j = len(flt.fleets.fleets[1].ships) - switch_info["slot_id"] + 1
+                j = len(fleet.ships) - switch_info["slot_id"] + 1
                 while j > 0:
-                    self._select_switch_button(switch_info["slot_id"])
-                    self._select_remove_button()
+                    if not self.switch_slot(switch_info["slot_id"], None):
+                        success = False
+                        break
                     j = j - 1
                 """End the switching process since the slots after this slot are empty"""
                 break
 
-            self.switch_slot(switch_info["slot_id"], switch_info["ship"])
+            if not self.switch_slot(switch_info["slot_id"], switch_info["ship"]):
+                success = False
+                break
 
         """Check if next combat possible, since new ship is switched in"""
         """Refresh home to update ship list"""
         if switch_list:
             com.combat.set_next_sortie_time(override=True)
             nav.navigate.to("refresh_home")
-            api.api.update_from_api({KCSAPIEnum.PORT})
+        return success
 
-    def get_ship_switch_list(self):
+    def get_ship_switch_list(self, fleet):
         """slot_id, idx, ship"""
         switch_list = []
 
@@ -97,19 +103,18 @@ class ShipSwitcherCore(object):
 
         ship_list = self._local_ships_sorted_by_levels
 
-        """For all 6 slots -- XVs32"""
-        for i in range(1, 7):
-            rule = self.rules[i]
+        for i, rule in sorted(self.rules.items()):
+            if not 1 <= i <= 6:
+                continue
+            slot_ship = rule.ship_in_slot(fleet)
 
-            if rule.is_switch_out():
+            if rule.is_switch_out(slot_ship):
+                if slot_ship is not None and rule.is_meet_criteria(None):
+                    switch_list.append({"slot_id": i, "idx": -1, "ship": None})
+                    break
                 replacement_idx, replacement_ship = self._find_replacement_ship(
                     rule, ship_list
                 )
-
-                if rule.ship_in_slot != None:
-                    """If the slot needs to be empty"""
-                    if rule.is_meet_criteria(None):
-                        replacement_idx, replacement_ship = (-1, None)
 
                 if replacement_idx is not None:
                     """Remove this ship from availble list"""
@@ -339,11 +344,12 @@ class ShipSwitcherCore(object):
                 )
                 kca_u.kca.r["top"].hover()
                 kca_u.kca.wait("right", "shipswitcher|shiplist_button.png")
+                return True
             else:
                 kca_u.kca.sleep(1)
                 retry += 1
 
-        return True
+        return False
 
     @property
     def _local_ships_sorted_by_levels(self) -> list[Ship]:

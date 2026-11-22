@@ -718,8 +718,8 @@ _FIELDS: tuple[Field, ...] = (
     _bool(
         "ship_switcher.enabled",
         False,
-        "Akashi repair",
-        "On: use the Akashi-repair ship switching rules (swap out damaged ships; rules are fixed). Off: disable ship switching and clear the rules.",
+        "Ship switcher",
+        "Apply the configured slot rules. With no custom rules, enable the idle Akashi repair preset.",
     ),
     Field(
         "ship_switcher.slots",

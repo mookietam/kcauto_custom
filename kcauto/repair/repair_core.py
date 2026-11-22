@@ -94,11 +94,15 @@ class RepairCore(object):
                 self.docks_count += 1
             if dock_data["api_state"] == 0:
                 self.docks_available_count += 1
+            # Occupancy is identified by the local ship ID, independently of
+            # the timer (a finished repair can still be present in the dock).
+            ship_id = int(dock_data.get("api_ship_id", 0))
+            if ship_id > 0:
+                self.ships_under_repair.append(ship_id)
             if dock_data["api_state"] == 1:
                 self.complete_times.append(
                     KCTime.convert_epoch(dock_data["api_complete_time"])
                 )
-                self.ships_under_repair.append(dock_data["api_ship_id"])
 
     def repair_ships(self):
         repair_list = self._local_ships_sorted_by_repair

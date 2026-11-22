@@ -27,8 +27,9 @@ COMBAT_ENABLED_KEY = "combat.enabled"
 
 
 def forced_off(values: Mapping[str, Any]) -> bool:
-    """Akashi repair is always off while combat is enabled (the two cannot be used together)."""
-    return values.get(COMBAT_ENABLED_KEY) is True
+    """Only the idle Akashi preset conflicts with combat, not custom rotations."""
+    slots = values.get(SLOTS_KEY)
+    return values.get(COMBAT_ENABLED_KEY) is True and (not slots or slots == AKASHI_SLOTS)
 
 
 def akashi_slots() -> dict[str, str]:
@@ -38,13 +39,12 @@ def akashi_slots() -> dict[str, str]:
 def slots_for(enabled: bool, current: Any) -> Any:
     """Work out what ``slots`` should be for the given switch state.
 
-    Keep existing (custom) rules when turning on; only fill in the Akashi defaults when empty. Turning off always clears them.
+    Keep custom rules across toggles; only fill in Akashi defaults when empty.
     """
-    if not enabled:
-        return {}
     if isinstance(current, dict) and current:
-        return current
-    return akashi_slots()
+        if enabled or current != AKASHI_SLOTS:
+            return current
+    return akashi_slots() if enabled else {}
 
 
 def state(values: Mapping[str, Any]) -> str:

@@ -79,16 +79,14 @@ class ShipSwitchRule(object):
                 split_crit[9] = ShipSwitcherCriteriaSlot9Enum(split_crit[9])
             self.criteria.append(split_crit)
 
-    @property
-    def ship_in_slot(self):
+    def ship_in_slot(self, fleet):
         """Return None if the slot is empty -- XVs32"""
-        if len(flt.fleets.fleets[flt.fleets.ACTIVE_FLEET_KEY][1].ships) < self.slot_id:
+        if len(fleet.ships) < self.slot_id:
             return None
 
-        return flt.fleets.fleets[flt.fleets.ACTIVE_FLEET_KEY][1].ships[self.slot_id - 1]
+        return fleet.ships[self.slot_id - 1]
 
-    def is_switch_out(self):
-        slot_ship = self.ship_in_slot
+    def is_switch_out(self, slot_ship):
 
         for condition in self.conditions:
             """This slot could be switch if it is empty -- XVs32"""
@@ -149,15 +147,15 @@ class ShipSwitchRule(object):
             elif criterion[0] is ShipSwitcherCriteriaSlot0Enum.CLASS:
                 if not ship.ship_type == criterion[1]:
                     continue
-            if criterion[2] and criterion[3]:
+            if criterion[2] and criterion[3] != "":
                 op = self._get_operator(criterion[2])
                 if not op(ship.level, criterion[3]):
                     continue
-            if criterion[4] and criterion[5]:
+            if criterion[4] and criterion[5] != "":
                 op = self._get_operator(criterion[4])
                 if not op(ship.damage, criterion[5]):
                     continue
-            if criterion[6] and criterion[7]:
+            if criterion[6] and criterion[7] != "":
                 op = self._get_operator(criterion[6])
                 if not op(ship.morale, criterion[7]):
                     continue
@@ -168,7 +166,7 @@ class ShipSwitchRule(object):
                 ):
                     continue
                 elif (
-                    criterion[8] is ShipSwitcherCriteriaSlot8Enum.LOCKED and ship.locked
+                    criterion[8] is ShipSwitcherCriteriaSlot8Enum.UNLOCKED and ship.locked
                 ):
                     continue
             if criterion[9]:
